@@ -28,7 +28,38 @@ from pathlib import Path
 import numpy as np
 import torch
 from tqdm import tqdm
+# preprocess model with posit 8_1  and posit 8_1
+from qtorch_plus.quant import posit_quantize, float_quantize, configurable_table_quantize
+import torch.nn as nn
 
+def linear_weight(input):
+  return posit_quantize(input,nsize=8, es=1, scale = 1)
+
+def other_weight(input):
+  return posit_quantize(input,nsize=8, es=1)  
+
+def linear_activation(input):
+  return posit_quantize(input,nsize=8, es=1)
+
+def other_activation(input):
+  return posit_quantize(input,nsize=8, es=1)   
+
+def forward_pre_hook_linear(m, input):
+    return (linear_activation(input[0]),) 
+
+def forward_hook(m, input,output):
+    return other_activation(output)  
+
+def forward_pre_hook_other(m,input):
+  if isinstance(input[0], torch.Tensor):
+    if (input[0].dtype == torch.float32):
+      return (other_activation(input[0]),) 
+    else:
+      return input
+  else:
+    return input
+
+    
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
